@@ -1,0 +1,1400 @@
+
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, roc_curve, auc
+
+df = pd.read_csv('enron_spam_data.csv')
+display(df)
+```
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Message ID</th>
+      <th>Subject</th>
+      <th>Message</th>
+      <th>Spam/Ham</th>
+      <th>Date</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>christmas tree farm pictures</td>
+      <td>NaN</td>
+      <td>ham</td>
+      <td>1999-12-10</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>vastar resources , inc .</td>
+      <td>gary , production from the high island larger ...</td>
+      <td>ham</td>
+      <td>1999-12-13</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2</td>
+      <td>calpine daily gas nomination</td>
+      <td>- calpine daily gas nomination 1 . doc</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>3</td>
+      <td>re : issue</td>
+      <td>fyi - see note below - already done .\nstella\...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>4</td>
+      <td>meter 7268 nov allocation</td>
+      <td>fyi .\n- - - - - - - - - - - - - - - - - - - -...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>5</td>
+      <td>mcmullen gas for 11 / 99</td>
+      <td>jackie ,\nsince the inlet to 3 river plant is ...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>6</td>
+      <td>meter 1517 - jan 1999</td>
+      <td>george ,\ni need the following done :\njan 13\...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>7</td>
+      <td>duns number changes</td>
+      <td>fyi\n- - - - - - - - - - - - - - - - - - - - -...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>8</td>
+      <td>king ranch</td>
+      <td>there are two fields of gas that i am having d...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>9</td>
+      <td>re : entex transistion</td>
+      <td>thanks so much for the memo . i would like to ...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>10</td>
+      <td>entex transistion</td>
+      <td>the purpose of the email is to recap the kicko...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>11</td>
+      <td>lst rev dec . 1999 josey ranch nom</td>
+      <td>fyi\n- - - - - - - - - - - - - - - - - - - - -...</td>
+      <td>ham</td>
+      <td>1999-12-15</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>12</td>
+      <td>2 nd rev dec . 1999 josey ranch nom</td>
+      <td>- - - - - - - - - - - - - - - - - - - - - - fo...</td>
+      <td>ham</td>
+      <td>1999-12-15</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>13</td>
+      <td>unify close schedule</td>
+      <td>the following is the close schedule for this c...</td>
+      <td>ham</td>
+      <td>1999-12-15</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>14</td>
+      <td>meter 1431 - nov 1999</td>
+      <td>aimee ,\nsitara deal 92943 for meter 1431 has ...</td>
+      <td>ham</td>
+      <td>1999-12-15</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>15</td>
+      <td>meter 1431 - nov 1999</td>
+      <td>daren -\ncould you please resolve this issue f...</td>
+      <td>ham</td>
+      <td>1999-12-15</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>16</td>
+      <td>y 2 k - texas log</td>
+      <td>name home pager\ngeorge grant 281 - 282 - 9084...</td>
+      <td>ham</td>
+      <td>1999-12-15</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>17</td>
+      <td>re : lyondell citgo</td>
+      <td>my latest understanding is the buyback will be...</td>
+      <td>ham</td>
+      <td>1999-12-16</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>18</td>
+      <td>hpl fuel gas buy - back for december 1999</td>
+      <td>fyi :\n- - - - - - - - - - - - - - - - - - - -...</td>
+      <td>ham</td>
+      <td>1999-12-16</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>19</td>
+      <td>ua 4 - meter 1441 for 11 / 97 - falfurrias</td>
+      <td>daren - i need your help in resolving this iss...</td>
+      <td>ham</td>
+      <td>1999-12-16</td>
+    </tr>
+    <tr>
+      <th>20</th>
+      <td>20</td>
+      <td>ua 4 for meter 8608 - 6 / 98 - deal 96731</td>
+      <td>daren - deal 96731 is not in cpr for 6 / 98 or...</td>
+      <td>ham</td>
+      <td>1999-12-16</td>
+    </tr>
+    <tr>
+      <th>21</th>
+      <td>21</td>
+      <td>january spot tickets</td>
+      <td>daren ,\nhplc is purchasing gas from the follo...</td>
+      <td>ham</td>
+      <td>1999-12-17</td>
+    </tr>
+    <tr>
+      <th>22</th>
+      <td>22</td>
+      <td>pennzenergy property details</td>
+      <td>- - - - - - - - - - - - - - - - - - - - - - fo...</td>
+      <td>ham</td>
+      <td>1999-12-17</td>
+    </tr>
+    <tr>
+      <th>23</th>
+      <td>23</td>
+      <td>miscellaneous</td>
+      <td>- - - - - - - - - - - - - - - - - - - - - - fo...</td>
+      <td>ham</td>
+      <td>1999-12-17</td>
+    </tr>
+    <tr>
+      <th>24</th>
+      <td>24</td>
+      <td>re : purge of old contract _ event _ status</td>
+      <td>fyi - what do you all think ?\n- - - - - - - -...</td>
+      <td>ham</td>
+      <td>1999-12-20</td>
+    </tr>
+    <tr>
+      <th>25</th>
+      <td>25</td>
+      <td>out on vacation</td>
+      <td>fyi ,\ni will be out of the office ( actually ...</td>
+      <td>ham</td>
+      <td>1999-12-20</td>
+    </tr>
+    <tr>
+      <th>26</th>
+      <td>26</td>
+      <td>re : meter 1428 oct 99 - beaumont methanol</td>
+      <td>i ' m sorry , did we discuss bmc ? ? ? .\nlee ...</td>
+      <td>ham</td>
+      <td>1999-12-20</td>
+    </tr>
+    <tr>
+      <th>27</th>
+      <td>27</td>
+      <td>re : evergreen deals</td>
+      <td>no that is a gtc firm that will expire when th...</td>
+      <td>ham</td>
+      <td>1999-12-20</td>
+    </tr>
+    <tr>
+      <th>28</th>
+      <td>28</td>
+      <td>re : evergreen deals</td>
+      <td>look at comments below .\njulie\ndaren j farme...</td>
+      <td>ham</td>
+      <td>1999-12-20</td>
+    </tr>
+    <tr>
+      <th>29</th>
+      <td>29</td>
+      <td>potential well head - january 2000</td>
+      <td>darren :\nthe following is the potential new w...</td>
+      <td>ham</td>
+      <td>1999-12-20</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>33686</th>
+      <td>33686</td>
+      <td>turbonet pro</td>
+      <td>hi ,\nmake your ordinary 56 k modem go speeds ...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+    </tr>
+    <tr>
+      <th>33687</th>
+      <td>33687</td>
+      <td>great software offers</td>
+      <td>dear friend ,\nwhen did you spoil you computer...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+    </tr>
+    <tr>
+      <th>33688</th>
+      <td>33688</td>
+      <td>pennystocks can make you money ; apwl - pk _ s...</td>
+      <td>hello gerstmar\napwl is a gold mine - it is at...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+    </tr>
+    <tr>
+      <th>33689</th>
+      <td>33689</td>
+      <td>amazing stuff at great prices</td>
+      <td>dear friend ,\nwhen did you spoil you computer...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+    </tr>
+    <tr>
+      <th>33690</th>
+      <td>33690</td>
+      <td>calling all small stock players</td>
+      <td>world stock report issued for july 28 , 2005\n...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+    </tr>
+    <tr>
+      <th>33691</th>
+      <td>33691</td>
+      <td>quicker effects . lesser costs . best bargain ...</td>
+      <td>innovative website . wide range of remedy sele...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+    </tr>
+    <tr>
+      <th>33692</th>
+      <td>33692</td>
+      <td>we have marked down the prices on all tablets ...</td>
+      <td>peruse our site and experience the advantages ...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+    </tr>
+    <tr>
+      <th>33693</th>
+      <td>33693</td>
+      <td>= ? iso - 8859 - 1 ? q ? vlagrr = eo _ val = e...</td>
+      <td>hello , welcome to megapharm online shhop .\np...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+    </tr>
+    <tr>
+      <th>33694</th>
+      <td>33694</td>
+      <td>re [ 9 ] : letter about our progs</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33695</th>
+      <td>33695</td>
+      <td>re [ 9 ] : letter about your soft</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33696</th>
+      <td>33696</td>
+      <td>re [ 4 ] : talks about their soft</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33697</th>
+      <td>33697</td>
+      <td>re [ 5 ] : question about her cds</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33698</th>
+      <td>33698</td>
+      <td>re [ 6 ] : letter about his warez</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33699</th>
+      <td>33699</td>
+      <td>re [ 2 ] : question about our progs</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33700</th>
+      <td>33700</td>
+      <td>re [ 2 ] : question about their soft</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33701</th>
+      <td>33701</td>
+      <td>re [ 5 ] : question about our progs</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33702</th>
+      <td>33702</td>
+      <td>re [ 7 ] : talks about their soft</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33703</th>
+      <td>33703</td>
+      <td>everything you need for beautiful hardwood floors</td>
+      <td>orange glo ( r ) hardwood floor care system\nt...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33704</th>
+      <td>33704</td>
+      <td>god has done it .</td>
+      <td>sir / madam ,\nwe are pleased to inform you of...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33705</th>
+      <td>33705</td>
+      <td>reduzca sus gastos telefonicos</td>
+      <td>empresa lider mundial le permite utilizar su n...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33706</th>
+      <td>33706</td>
+      <td>= ? iso - 8859 - 2 ? q ? my _ proposition ? =</td>
+      <td>from : dr . dan . nkanga\nzenith international...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33707</th>
+      <td>33707</td>
+      <td>make big bucks in the medical field bait - exc...</td>
+      <td>having problems seeing the graphics ? please g...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33708</th>
+      <td>33708</td>
+      <td>proposal</td>
+      <td>dear sir ,\nfirst i must solicit your strictes...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33709</th>
+      <td>33709</td>
+      <td>cure premature ejaculation</td>
+      <td>hello ,\ndid you ejaculate before or within a ...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33710</th>
+      <td>33710</td>
+      <td>need your vics ?</td>
+      <td>brand name meds such as vics , vals , xanies a...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33711</th>
+      <td>33711</td>
+      <td>= ? iso - 8859 - 1 ? q ? good _ news _ c = eda...</td>
+      <td>hello , welcome to gigapharm onlinne shop .\np...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33712</th>
+      <td>33712</td>
+      <td>all prescript medicines are on special . to be...</td>
+      <td>i got it earlier than expected and it was wrap...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+    </tr>
+    <tr>
+      <th>33713</th>
+      <td>33713</td>
+      <td>the next generation online pharmacy .</td>
+      <td>are you ready to rock on ? let the man in you ...</td>
+      <td>spam</td>
+      <td>2005-07-30</td>
+    </tr>
+    <tr>
+      <th>33714</th>
+      <td>33714</td>
+      <td>bloow in 5 - 10 times the time</td>
+      <td>learn how to last 5 - 10 times longer in\nbed ...</td>
+      <td>spam</td>
+      <td>2005-07-30</td>
+    </tr>
+    <tr>
+      <th>33715</th>
+      <td>33715</td>
+      <td>dear sir , i am interested in it</td>
+      <td>hi : )\ndo you need some softwares ? i can giv...</td>
+      <td>spam</td>
+      <td>2005-07-31</td>
+    </tr>
+  </tbody>
+</table>
+<p>33716 rows × 5 columns</p>
+</div>
+
+
+
+```python
+import re
+
+def regexClean(message_content):
+    # convert everything to string
+    # getting a "passing a float" error otherwise
+    message_content = str(message_content) 
+    
+    # remove all URLs
+    message_content = re.sub(r'(http|https|ftp)://[a-zA-Z0-9\\./]+', ' ', str(message_content)) 
+
+    # remove all emails
+    message_content = re.sub(r'[A-Za-z0-9._\\-]+@[A-Za-z0-9-]*\\.[a-z]{2,3}','',str(message_content))
+
+    # remove all tags
+    # https://stackoverflow.com/questions/9662346/python-code-to-remove-html-tags-from-a-string
+    message_content = re.sub(r'<[^<]+?>', '', str(message_content)) 
+
+    # remove newline
+    message_content = message_content.replace('\n', ' ')
+
+    # convert all chars to lowercase
+    message_content = message_content.lower()
+    return message_content
+
+# make a copy of the df 
+df_with_punct_numb_removed = df.copy();
+
+df['Cleaned_Message'] = df['Message'].apply(regexClean)
+
+print(df[['Message', 'Cleaned_Message']].head())
+df_with_punct_numb_removed.head()
+```
+
+                                                 Message  \
+    0                                                NaN   
+    1  gary , production from the high island larger ...   
+    2             - calpine daily gas nomination 1 . doc   
+    3  fyi - see note below - already done .\nstella\...   
+    4  fyi .\n- - - - - - - - - - - - - - - - - - - -...   
+    
+                                         Cleaned_Message  
+    0                                                nan  
+    1  gary , production from the high island larger ...  
+    2             - calpine daily gas nomination 1 . doc  
+    3  fyi - see note below - already done . stella -...  
+    4  fyi . - - - - - - - - - - - - - - - - - - - - ...  
+
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Message ID</th>
+      <th>Subject</th>
+      <th>Message</th>
+      <th>Spam/Ham</th>
+      <th>Date</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>christmas tree farm pictures</td>
+      <td>NaN</td>
+      <td>ham</td>
+      <td>1999-12-10</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>vastar resources , inc .</td>
+      <td>gary , production from the high island larger ...</td>
+      <td>ham</td>
+      <td>1999-12-13</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2</td>
+      <td>calpine daily gas nomination</td>
+      <td>- calpine daily gas nomination 1 . doc</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>3</td>
+      <td>re : issue</td>
+      <td>fyi - see note below - already done .\nstella\...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>4</td>
+      <td>meter 7268 nov allocation</td>
+      <td>fyi .\n- - - - - - - - - - - - - - - - - - - -...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+from string import punctuation
+
+def punct_removal(message_content):
+    message_content = str(message_content)
+    
+    # https://regexr.com/
+    
+    # remove digits
+    message_content = re.sub(r'\d+', ' ', message_content)
+
+    # remove all non-alphabetic characters
+    message_content = message_content.replace(r'[^a-zA-Z]', '') 
+
+    #remove punctuation
+    # https://stackoverflow.com/questions/265960/best-way-to-strip-punctuation-from-a-string
+    message_content = message_content.translate(str.maketrans('', '', punctuation))
+    
+    return message_content
+
+df_with_punct_numb_removed['Cleaned_Message'] = df_with_punct_numb_removed['Message'].apply(punct_removal)
+
+display(df_with_punct_numb_removed)
+```
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Message ID</th>
+      <th>Subject</th>
+      <th>Message</th>
+      <th>Spam/Ham</th>
+      <th>Date</th>
+      <th>Cleaned_Message</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>christmas tree farm pictures</td>
+      <td>NaN</td>
+      <td>ham</td>
+      <td>1999-12-10</td>
+      <td>nan</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>vastar resources , inc .</td>
+      <td>gary , production from the high island larger ...</td>
+      <td>ham</td>
+      <td>1999-12-13</td>
+      <td>gary  production from the high island larger b...</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2</td>
+      <td>calpine daily gas nomination</td>
+      <td>- calpine daily gas nomination 1 . doc</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+      <td>calpine daily gas nomination    doc</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>3</td>
+      <td>re : issue</td>
+      <td>fyi - see note below - already done .\nstella\...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+      <td>fyi  see note below  already done \nstella\n  ...</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>4</td>
+      <td>meter 7268 nov allocation</td>
+      <td>fyi .\n- - - - - - - - - - - - - - - - - - - -...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+      <td>fyi \n                      forwarded by lauri...</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>5</td>
+      <td>mcmullen gas for 11 / 99</td>
+      <td>jackie ,\nsince the inlet to 3 river plant is ...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+      <td>jackie \nsince the inlet to   river plant is s...</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>6</td>
+      <td>meter 1517 - jan 1999</td>
+      <td>george ,\ni need the following done :\njan 13\...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+      <td>george \ni need the following done \njan  \nze...</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>7</td>
+      <td>duns number changes</td>
+      <td>fyi\n- - - - - - - - - - - - - - - - - - - - -...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+      <td>fyi\n                      forwarded by gary l...</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>8</td>
+      <td>king ranch</td>
+      <td>there are two fields of gas that i am having d...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+      <td>there are two fields of gas that i am having d...</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>9</td>
+      <td>re : entex transistion</td>
+      <td>thanks so much for the memo . i would like to ...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+      <td>thanks so much for the memo  i would like to r...</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>10</td>
+      <td>entex transistion</td>
+      <td>the purpose of the email is to recap the kicko...</td>
+      <td>ham</td>
+      <td>1999-12-14</td>
+      <td>the purpose of the email is to recap the kicko...</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>11</td>
+      <td>lst rev dec . 1999 josey ranch nom</td>
+      <td>fyi\n- - - - - - - - - - - - - - - - - - - - -...</td>
+      <td>ham</td>
+      <td>1999-12-15</td>
+      <td>fyi\n                      forwarded by susan ...</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>12</td>
+      <td>2 nd rev dec . 1999 josey ranch nom</td>
+      <td>- - - - - - - - - - - - - - - - - - - - - - fo...</td>
+      <td>ham</td>
+      <td>1999-12-15</td>
+      <td>forwarded by susan d tre...</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>13</td>
+      <td>unify close schedule</td>
+      <td>the following is the close schedule for this c...</td>
+      <td>ham</td>
+      <td>1999-12-15</td>
+      <td>the following is the close schedule for this c...</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>14</td>
+      <td>meter 1431 - nov 1999</td>
+      <td>aimee ,\nsitara deal 92943 for meter 1431 has ...</td>
+      <td>ham</td>
+      <td>1999-12-15</td>
+      <td>aimee \nsitara deal   for meter   has expired ...</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>15</td>
+      <td>meter 1431 - nov 1999</td>
+      <td>daren -\ncould you please resolve this issue f...</td>
+      <td>ham</td>
+      <td>1999-12-15</td>
+      <td>daren \ncould you please resolve this issue fo...</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>16</td>
+      <td>y 2 k - texas log</td>
+      <td>name home pager\ngeorge grant 281 - 282 - 9084...</td>
+      <td>ham</td>
+      <td>1999-12-15</td>
+      <td>name home pager\ngeorge grant                \...</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>17</td>
+      <td>re : lyondell citgo</td>
+      <td>my latest understanding is the buyback will be...</td>
+      <td>ham</td>
+      <td>1999-12-16</td>
+      <td>my latest understanding is the buyback will be...</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>18</td>
+      <td>hpl fuel gas buy - back for december 1999</td>
+      <td>fyi :\n- - - - - - - - - - - - - - - - - - - -...</td>
+      <td>ham</td>
+      <td>1999-12-16</td>
+      <td>fyi \n                      forwarded by gregg...</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>19</td>
+      <td>ua 4 - meter 1441 for 11 / 97 - falfurrias</td>
+      <td>daren - i need your help in resolving this iss...</td>
+      <td>ham</td>
+      <td>1999-12-16</td>
+      <td>daren  i need your help in resolving this issu...</td>
+    </tr>
+    <tr>
+      <th>20</th>
+      <td>20</td>
+      <td>ua 4 for meter 8608 - 6 / 98 - deal 96731</td>
+      <td>daren - deal 96731 is not in cpr for 6 / 98 or...</td>
+      <td>ham</td>
+      <td>1999-12-16</td>
+      <td>daren  deal   is not in cpr for      or oss  p...</td>
+    </tr>
+    <tr>
+      <th>21</th>
+      <td>21</td>
+      <td>january spot tickets</td>
+      <td>daren ,\nhplc is purchasing gas from the follo...</td>
+      <td>ham</td>
+      <td>1999-12-17</td>
+      <td>daren \nhplc is purchasing gas from the follow...</td>
+    </tr>
+    <tr>
+      <th>22</th>
+      <td>22</td>
+      <td>pennzenergy property details</td>
+      <td>- - - - - - - - - - - - - - - - - - - - - - fo...</td>
+      <td>ham</td>
+      <td>1999-12-17</td>
+      <td>forwarded by ami chokshi...</td>
+    </tr>
+    <tr>
+      <th>23</th>
+      <td>23</td>
+      <td>miscellaneous</td>
+      <td>- - - - - - - - - - - - - - - - - - - - - - fo...</td>
+      <td>ham</td>
+      <td>1999-12-17</td>
+      <td>forwarded by ami chokshi...</td>
+    </tr>
+    <tr>
+      <th>24</th>
+      <td>24</td>
+      <td>re : purge of old contract _ event _ status</td>
+      <td>fyi - what do you all think ?\n- - - - - - - -...</td>
+      <td>ham</td>
+      <td>1999-12-20</td>
+      <td>fyi  what do you all think \n                 ...</td>
+    </tr>
+    <tr>
+      <th>25</th>
+      <td>25</td>
+      <td>out on vacation</td>
+      <td>fyi ,\ni will be out of the office ( actually ...</td>
+      <td>ham</td>
+      <td>1999-12-20</td>
+      <td>fyi \ni will be out of the office  actually ou...</td>
+    </tr>
+    <tr>
+      <th>26</th>
+      <td>26</td>
+      <td>re : meter 1428 oct 99 - beaumont methanol</td>
+      <td>i ' m sorry , did we discuss bmc ? ? ? .\nlee ...</td>
+      <td>ham</td>
+      <td>1999-12-20</td>
+      <td>i  m sorry  did we discuss bmc    \nlee can co...</td>
+    </tr>
+    <tr>
+      <th>27</th>
+      <td>27</td>
+      <td>re : evergreen deals</td>
+      <td>no that is a gtc firm that will expire when th...</td>
+      <td>ham</td>
+      <td>1999-12-20</td>
+      <td>no that is a gtc firm that will expire when th...</td>
+    </tr>
+    <tr>
+      <th>28</th>
+      <td>28</td>
+      <td>re : evergreen deals</td>
+      <td>look at comments below .\njulie\ndaren j farme...</td>
+      <td>ham</td>
+      <td>1999-12-20</td>
+      <td>look at comments below \njulie\ndaren j farmer...</td>
+    </tr>
+    <tr>
+      <th>29</th>
+      <td>29</td>
+      <td>potential well head - january 2000</td>
+      <td>darren :\nthe following is the potential new w...</td>
+      <td>ham</td>
+      <td>1999-12-20</td>
+      <td>darren \nthe following is the potential new we...</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>33686</th>
+      <td>33686</td>
+      <td>turbonet pro</td>
+      <td>hi ,\nmake your ordinary 56 k modem go speeds ...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+      <td>hi \nmake your ordinary   k modem go speeds of...</td>
+    </tr>
+    <tr>
+      <th>33687</th>
+      <td>33687</td>
+      <td>great software offers</td>
+      <td>dear friend ,\nwhen did you spoil you computer...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+      <td>dear friend \nwhen did you spoil you computer ...</td>
+    </tr>
+    <tr>
+      <th>33688</th>
+      <td>33688</td>
+      <td>pennystocks can make you money ; apwl - pk _ s...</td>
+      <td>hello gerstmar\napwl is a gold mine - it is at...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+      <td>hello gerstmar\napwl is a gold mine  it is at ...</td>
+    </tr>
+    <tr>
+      <th>33689</th>
+      <td>33689</td>
+      <td>amazing stuff at great prices</td>
+      <td>dear friend ,\nwhen did you spoil you computer...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+      <td>dear friend \nwhen did you spoil you computer ...</td>
+    </tr>
+    <tr>
+      <th>33690</th>
+      <td>33690</td>
+      <td>calling all small stock players</td>
+      <td>world stock report issued for july 28 , 2005\n...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+      <td>world stock report issued for july     \nexplo...</td>
+    </tr>
+    <tr>
+      <th>33691</th>
+      <td>33691</td>
+      <td>quicker effects . lesser costs . best bargain ...</td>
+      <td>innovative website . wide range of remedy sele...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+      <td>innovative website  wide range of remedy selec...</td>
+    </tr>
+    <tr>
+      <th>33692</th>
+      <td>33692</td>
+      <td>we have marked down the prices on all tablets ...</td>
+      <td>peruse our site and experience the advantages ...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+      <td>peruse our site and experience the advantages ...</td>
+    </tr>
+    <tr>
+      <th>33693</th>
+      <td>33693</td>
+      <td>= ? iso - 8859 - 1 ? q ? vlagrr = eo _ val = e...</td>
+      <td>hello , welcome to megapharm online shhop .\np...</td>
+      <td>spam</td>
+      <td>2005-07-28</td>
+      <td>hello  welcome to megapharm online shhop \npre...</td>
+    </tr>
+    <tr>
+      <th>33694</th>
+      <td>33694</td>
+      <td>re [ 9 ] : letter about our progs</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>mult\ngua\nmsof\nre \nilan\ngeoe\ntwa\nnonee\n...</td>
+    </tr>
+    <tr>
+      <th>33695</th>
+      <td>33695</td>
+      <td>re [ 9 ] : letter about your soft</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>mult\ngua\nmsof\nre \nilan\ngeoe\ntwa\nnonee\n...</td>
+    </tr>
+    <tr>
+      <th>33696</th>
+      <td>33696</td>
+      <td>re [ 4 ] : talks about their soft</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>mult\ngua\nmsof\nre \nilan\ngeoe\ntwa\nnonee\n...</td>
+    </tr>
+    <tr>
+      <th>33697</th>
+      <td>33697</td>
+      <td>re [ 5 ] : question about her cds</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>mult\ngua\nmsof\nre \nilan\ngeoe\ntwa\nnonee\n...</td>
+    </tr>
+    <tr>
+      <th>33698</th>
+      <td>33698</td>
+      <td>re [ 6 ] : letter about his warez</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>mult\ngua\nmsof\nre \nilan\ngeoe\ntwa\nnonee\n...</td>
+    </tr>
+    <tr>
+      <th>33699</th>
+      <td>33699</td>
+      <td>re [ 2 ] : question about our progs</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>mult\ngua\nmsof\nre \nilan\ngeoe\ntwa\nnonee\n...</td>
+    </tr>
+    <tr>
+      <th>33700</th>
+      <td>33700</td>
+      <td>re [ 2 ] : question about their soft</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>mult\ngua\nmsof\nre \nilan\ngeoe\ntwa\nnonee\n...</td>
+    </tr>
+    <tr>
+      <th>33701</th>
+      <td>33701</td>
+      <td>re [ 5 ] : question about our progs</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>mult\ngua\nmsof\nre \nilan\ngeoe\ntwa\nnonee\n...</td>
+    </tr>
+    <tr>
+      <th>33702</th>
+      <td>33702</td>
+      <td>re [ 7 ] : talks about their soft</td>
+      <td>mult\ngua\nmsof\nre !\nilan\ngeoe\ntwa\nnonee\...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>mult\ngua\nmsof\nre \nilan\ngeoe\ntwa\nnonee\n...</td>
+    </tr>
+    <tr>
+      <th>33703</th>
+      <td>33703</td>
+      <td>everything you need for beautiful hardwood floors</td>
+      <td>orange glo ( r ) hardwood floor care system\nt...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>orange glo  r  hardwood floor care system\nthe...</td>
+    </tr>
+    <tr>
+      <th>33704</th>
+      <td>33704</td>
+      <td>god has done it .</td>
+      <td>sir / madam ,\nwe are pleased to inform you of...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>sir  madam \nwe are pleased to inform you of t...</td>
+    </tr>
+    <tr>
+      <th>33705</th>
+      <td>33705</td>
+      <td>reduzca sus gastos telefonicos</td>
+      <td>empresa lider mundial le permite utilizar su n...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>empresa lider mundial le permite utilizar su n...</td>
+    </tr>
+    <tr>
+      <th>33706</th>
+      <td>33706</td>
+      <td>= ? iso - 8859 - 2 ? q ? my _ proposition ? =</td>
+      <td>from : dr . dan . nkanga\nzenith international...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>from  dr  dan  nkanga\nzenith international ba...</td>
+    </tr>
+    <tr>
+      <th>33707</th>
+      <td>33707</td>
+      <td>make big bucks in the medical field bait - exc...</td>
+      <td>having problems seeing the graphics ? please g...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>having problems seeing the graphics  please go...</td>
+    </tr>
+    <tr>
+      <th>33708</th>
+      <td>33708</td>
+      <td>proposal</td>
+      <td>dear sir ,\nfirst i must solicit your strictes...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>dear sir \nfirst i must solicit your strictest...</td>
+    </tr>
+    <tr>
+      <th>33709</th>
+      <td>33709</td>
+      <td>cure premature ejaculation</td>
+      <td>hello ,\ndid you ejaculate before or within a ...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>hello \ndid you ejaculate before or within a f...</td>
+    </tr>
+    <tr>
+      <th>33710</th>
+      <td>33710</td>
+      <td>need your vics ?</td>
+      <td>brand name meds such as vics , vals , xanies a...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>brand name meds such as vics  vals  xanies and...</td>
+    </tr>
+    <tr>
+      <th>33711</th>
+      <td>33711</td>
+      <td>= ? iso - 8859 - 1 ? q ? good _ news _ c = eda...</td>
+      <td>hello , welcome to gigapharm onlinne shop .\np...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>hello  welcome to gigapharm onlinne shop \npre...</td>
+    </tr>
+    <tr>
+      <th>33712</th>
+      <td>33712</td>
+      <td>all prescript medicines are on special . to be...</td>
+      <td>i got it earlier than expected and it was wrap...</td>
+      <td>spam</td>
+      <td>2005-07-29</td>
+      <td>i got it earlier than expected and it was wrap...</td>
+    </tr>
+    <tr>
+      <th>33713</th>
+      <td>33713</td>
+      <td>the next generation online pharmacy .</td>
+      <td>are you ready to rock on ? let the man in you ...</td>
+      <td>spam</td>
+      <td>2005-07-30</td>
+      <td>are you ready to rock on  let the man in you r...</td>
+    </tr>
+    <tr>
+      <th>33714</th>
+      <td>33714</td>
+      <td>bloow in 5 - 10 times the time</td>
+      <td>learn how to last 5 - 10 times longer in\nbed ...</td>
+      <td>spam</td>
+      <td>2005-07-30</td>
+      <td>learn how to last      times longer in\nbed   ...</td>
+    </tr>
+    <tr>
+      <th>33715</th>
+      <td>33715</td>
+      <td>dear sir , i am interested in it</td>
+      <td>hi : )\ndo you need some softwares ? i can giv...</td>
+      <td>spam</td>
+      <td>2005-07-31</td>
+      <td>hi  \ndo you need some softwares  i can give y...</td>
+    </tr>
+  </tbody>
+</table>
+<p>33716 rows × 6 columns</p>
+</div>
+
+
+
+```python
+# Vectorize the text data
+vectorizer = TfidfVectorizer(max_features=3000)
+X = vectorizer.fit_transform(df['Cleaned_Message']).toarray()
+
+# Convert the vectorized data to a DataFrame for better visualization
+vectorized_df = pd.DataFrame(X, columns=vectorizer.get_feature_names())
+
+# Display the first few rows of the vectorized data
+print(vectorized_df.head())
+```
+
+             00       000  0000        01        02   03   04   05        06   07  \
+    0  0.000000  0.000000   0.0  0.000000  0.000000  0.0  0.0  0.0  0.000000  0.0   
+    1  0.037818  0.351393   0.0  0.000000  0.000000  0.0  0.0  0.0  0.000000  0.0   
+    2  0.000000  0.000000   0.0  0.000000  0.000000  0.0  0.0  0.0  0.000000  0.0   
+    3  0.000000  0.000000   0.0  0.036193  0.000000  0.0  0.0  0.0  0.044361  0.0   
+    4  0.000000  0.000000   0.0  0.080619  0.042999  0.0  0.0  0.0  0.000000  0.0   
+    
+       ...    yo  york       you  young  your  yours  yourself  zero  zimin  zone  
+    0  ...   0.0   0.0  0.000000    0.0   0.0    0.0       0.0   0.0    0.0   0.0  
+    1  ...   0.0   0.0  0.008924    0.0   0.0    0.0       0.0   0.0    0.0   0.0  
+    2  ...   0.0   0.0  0.000000    0.0   0.0    0.0       0.0   0.0    0.0   0.0  
+    3  ...   0.0   0.0  0.032173    0.0   0.0    0.0       0.0   0.0    0.0   0.0  
+    4  ...   0.0   0.0  0.000000    0.0   0.0    0.0       0.0   0.0    0.0   0.0  
+    
+    [5 rows x 3000 columns]
+
+
+
+```python
+# Define the target variable
+y = df['Spam/Ham'] 
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train the Random Forest classifier
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Predict on the test set
+y_pred = model.predict(X_test)
+```
+
+
+```python
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy}")
+print(classification_report(y_test, y_pred))
+```
+
+    Accuracy: 0.980723606168446
+                 precision    recall  f1-score   support
+    
+            ham       0.99      0.97      0.98      3276
+           spam       0.97      0.99      0.98      3468
+    
+    avg / total       0.98      0.98      0.98      6744
+    
+
+
+
+```python
+# Confusion Matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(10, 7))
+plt.imshow(conf_matrix, interpolation='nearest', cmap=plt.cm.Blues)
+plt.title('Confusion Matrix')
+plt.colorbar()
+tick_marks = [0, 1]
+plt.xticks(tick_marks, ['Ham', 'Spam'], rotation=45)
+plt.yticks(tick_marks, ['Ham', 'Spam'])
+
+thresh = conf_matrix.max() / 2.
+for i in range(conf_matrix.shape[0]):
+    for j in range(conf_matrix.shape[1]):
+        plt.text(j, i, format(conf_matrix[i, j], 'd'),
+                 horizontalalignment="center",
+                 color="white" if conf_matrix[i, j] > thresh else "black")
+
+plt.ylabel('True label')
+plt.xlabel('Predicted label')
+plt.tight_layout()
+plt.show()
+```
+
+
+![png](output_6_0.png)
+
+
+
+```python
+# ROC Curve
+y_prob = model.predict_proba(X_test)[:, 1]
+fpr, tpr, _ = roc_curve(y_test, y_prob, pos_label='spam')
+roc_auc = auc(fpr, tpr)
+
+plt.figure(figsize=(10, 7))
+plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:0.2f})')
+plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC) Curve')
+plt.legend(loc="lower right")
+plt.show()
+```
+
+
+![png](output_7_0.png)
+
+
+
+```python
+importances = model.feature_importances_
+indices = sorted(range(len(importances)), key=lambda i: importances[i])[-10:]  # Top 10 features
+plt.figure(figsize=(10, 7))
+plt.barh(range(len(indices)), [importances[i] for i in indices], align='center')
+plt.yticks(range(len(indices)), [vectorizer.get_feature_names()[i] for i in indices])
+plt.xlabel('Relative Importance')
+plt.title('Top 10 Feature Importances')
+plt.show()
+```
+
+
+![png](output_8_0.png)
+
